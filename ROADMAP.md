@@ -23,6 +23,12 @@
 - [ ] Basic web app scaffold — React or similar
 - [ ] Explorer mode — browse freely, ambient snow layer
 
+## Stage 2 — Infrastructure note
+MVP: Earth Engine tile URL served live via lightweight backend API.
+Earth Engine generates tiles on demand via getMapId(), 
+backend authenticates and passes tile URL to frontend,
+Mapbox renders as raster overlay. Always current data, no export step.
+
 ## Stage 3 — Route Planning
 *Goal: route-specific snow analysis*
 
@@ -51,6 +57,12 @@
 *Goal: robust, honest, multi-source data*
 
 - [ ] Provider abstraction — SnowTile interface
+- [ ] Replace live EE tile serving with scheduled pre-compute pipeline:
+        - Run compositing pipeline every 3 days on new Sentinel-2 pass
+        - Store snow mask as raster in database
+        - Serve from own API
+        - Advantages: faster, cheaper at scale, works without EE dependency
+        - Trigger: when app has real users and EE request limits become a concern
 - [ ] Sentinel-1 SAR provider
 - [ ] NISAR provider (when data matures)
 - [ ] Snow change rate validation study
