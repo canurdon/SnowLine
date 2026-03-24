@@ -55,6 +55,10 @@ Future consideration: At production scale, filter at >99% cloud
 cover purely as a compute optimisation — not a data quality 
 decision. Document explicitly if implemented.
 
+## Water masking
+Water SCL is used to create a seperate "water_mask"
+water and cloud masks are then combined into a single mask for the purpose of determining snow pixels. Keeping the water and cloud masks seperate is a better approach for interprobility and for the addition of other masks at later staged of development. These may be required to ensure that snow cover is calculated accurately without interference from terrain with similar NDSI.  
+
 ## Snow covered lake detection
 Status: Backlog
 
