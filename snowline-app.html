@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SnowLine — Alpine Snow Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ice: #c8e8f5;
+    --glacier: #7ec8e3;
+    --deep: #0d1b2a;
+    --slate: #1a2e40;
+    --mid: #2a4a63;
+    --text: #e8f4f8;
+    --muted: #7a9ab5;
+    --snow: #f0f8ff;
+    --accent: #48d4ff;
+    --warn: #ffd166;
+    --danger: #ef476f;
+    --success: #06d6a0;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--deep);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.6;
+  }
+
+  /* ── TOP NAV ── */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    border-bottom: 1px solid rgba(200,232,245,0.1);
+    position: relative;
+    z-index: 10;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--snow);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--glacier));
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    position: relative;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .nav-pills {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 40px;
+    padding: 4px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 7px 18px;
+    border-radius: 40px;
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .pill.active {
+    background: var(--accent);
+    color: var(--deep);
+    font-weight: 500;
+  }
+
+  .pill:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.08); }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .satellite-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--success);
+    padding: 5px 12px;
+    border: 1px solid var(--success);
+    border-radius: 4px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .pulse-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .app-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: calc(100vh - 73px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--slate);
+    border-right: 1px solid rgba(200,232,245,0.08);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-section {
+    padding: 20px;
+    border-bottom: 1px solid rgba(200,232,245,0.07);
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 10px 14px;
+    transition: border-color 0.2s;
+  }
+
+  .search-box:focus-within { border-color: var(--accent); }
+  .search-box input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    width: 100%;
+  }
+  .search-box input::placeholder { color: var(--muted); }
+
+  .search-icon { color: var(--muted); font-size: 14px; }
+
+  /* Date slider */
+  .date-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .date-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  .slider-wrap { position: relative; }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(to right, var(--accent) 75%, rgba(255,255,255,0.1) 75%);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(72,212,255,0.5);
+  }
+
+  /* Layer toggles */
+  .layer-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .layer-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .layer-item:hover { background: rgba(255,255,255,0.07); }
+  .layer-item.active { border-color: rgba(72,212,255,0.3); background: rgba(72,212,255,0.06); }
+
+  .layer-left { display: flex; align-items: center; gap: 10px; }
+  .layer-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .layer-name { font-size: 13px; font-weight: 400; }
+  .layer-sub { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+  .toggle {
+    width: 34px; height: 18px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: white;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+  }
+  .layer-item.active .toggle { background: var(--accent); }
+  .layer-item.active .toggle::after { transform: translateX(16px); }
+
+  /* Snow report cards */
+  .report-scroll { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .report-scroll::-webkit-scrollbar { width: 4px; }
+  .report-scroll::-webkit-scrollbar-track { background: transparent; }
+  .report-scroll::-webkit-scrollbar-thumb { background: var(--mid); border-radius: 2px; }
+
+  .report-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .report-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+
+  .report-card.high::before { background: var(--danger); }
+  .report-card.med::before { background: var(--warn); }
+  .report-card.low::before { background: var(--success); }
+
+  .report-card:hover { border-color: rgba(255,255,255,0.15); transform: translateX(2px); }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .card-name { font-size: 13px; font-weight: 500; }
+  .risk-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 3px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .high .risk-badge { background: rgba(239,71,111,0.2); color: var(--danger); border: 1px solid rgba(239,71,111,0.3); }
+  .med .risk-badge { background: rgba(255,209,102,0.15); color: var(--warn); border: 1px solid rgba(255,209,102,0.3); }
+  .low .risk-badge { background: rgba(6,214,160,0.15); color: var(--success); border: 1px solid rgba(6,214,160,0.3); }
+
+  .card-elev { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+
+  .snow-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .snow-bar-bg { flex: 1; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+  .snow-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(to right, var(--glacier), var(--accent)); }
+  .snow-pct { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); width: 28px; text-align: right; }
+
+  /* ── MAP AREA ── */
+  .map-wrap {
+    position: relative;
+    overflow: hidden;
+    background: #0a1520;
+  }
+
+  /* Topo map simulation */
+  .topo-map {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 30% 40%, rgba(45,85,60,0.4) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 70% 30%, rgba(55,75,50,0.3) 0%, transparent 50%),
+      radial-gradient(ellipse 90% 70% at 50% 70%, rgba(35,65,45,0.35) 0%, transparent 60%),
+      linear-gradient(165deg, #0e2030 0%, #0d1f2d 40%, #0a1a22 100%);
+  }
+
+  /* Topo contour lines */
+  .topo-lines {
+    position: absolute;
+    inset: 0;
+    opacity: 0.25;
+    background-image:
+      repeating-radial-gradient(ellipse 85% 55% at 30% 42%, transparent 30px, rgba(100,160,120,0.3) 31px, transparent 32px, transparent 50px, rgba(100,160,120,0.2) 51px, transparent 52px, transparent 70px, rgba(100,160,120,0.15) 71px, transparent 72px),
+      repeating-radial-gradient(ellipse 65% 75% at 68% 32%, transparent 25px, rgba(90,150,110,0.25) 26px, transparent 27px, transparent 45px, rgba(90,150,110,0.18) 46px, transparent 47px),
+      repeating-radial-gradient(ellipse 95% 65% at 50% 72%, transparent 20px, rgba(80,140,100,0.2) 21px, transparent 22px, transparent 40px);
+  }
+
+  /* Snow overlay blobs */
+  .snow-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+  }
+
+  .snow-blob {
+    position: absolute;
+    background: rgba(200, 235, 255, 0.55);
+    filter: blur(8px);
+    border-radius: 50%;
+    mix-blend-mode: screen;
+    animation: snowDrift 6s ease-in-out infinite;
+  }
+
+  .snow-blob:nth-child(1) { width: 180px; height: 120px; top: 12%; left: 22%; animation-delay: 0s; }
+  .snow-blob:nth-child(2) { width: 120px; height: 90px; top: 18%; left: 35%; animation-delay: 1s; }
+  .snow-blob:nth-child(3) { width: 200px; height: 140px; top: 6%; left: 55%; animation-delay: 2s; }
+  .snow-blob:nth-child(4) { width: 90px; height: 70px; top: 25%; left: 72%; animation-delay: 0.5s; }
+  .snow-blob:nth-child(5) { width: 150px; height: 100px; top: 35%; left: 15%; animation-delay: 1.5s; }
+  .snow-blob:nth-child(6) { width: 110px; height: 80px; top: 30%; left: 40%; animation-delay: 3s; }
+
+  @keyframes snowDrift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(3px, -4px) scale(1.02); }
+    66% { transform: translate(-2px, 2px) scale(0.98); }
+  }
+
+  /* Route line */
+  .route-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* Waypoints */
+  .waypoint {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  .wp-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+    position: relative;
+    transition: transform 0.2s;
+  }
+
+  .waypoint:hover .wp-dot { transform: scale(1.4); }
+
+  .wp-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    background: rgba(13,27,42,0.85);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 3px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-top: 5px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Snow intersection marker */
+  .snow-warn {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    animation: warnPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes warnPulse {
+    0%, 100% { transform: translate(-50%,-50%) scale(1); }
+    50% { transform: translate(-50%,-50%) scale(1.15); }
+  }
+
+  .snow-warn-inner {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: rgba(72,212,255,0.9);
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+  }
+
+  .snow-warn-ring {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(72,212,255,0.4);
+    animation: ringExpand 2s ease-out infinite;
+  }
+
+  @keyframes ringExpand {
+    0% { transform: scale(0.8); opacity: 0.8; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+
+  /* Elevation + Temperature profile */
+  .elev-panel {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 226px;
+    background: linear-gradient(to top, rgba(10,22,34,0.99) 0%, rgba(10,22,34,0.93) 75%, transparent 100%);
+    padding: 14px 24px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .profile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+  }
+
+  .elev-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .profile-legend {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .prof-leg-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .prof-leg-line {
+    width: 18px; height: 2px;
+    border-radius: 1px;
+  }
+
+  .prof-leg-dash {
+    width: 18px; height: 0;
+    border-top: 2px dashed;
+    border-radius: 1px;
+  }
+
+  .freezing-alert {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #b8d4ff;
+    background: rgba(100,160,255,0.1);
+    border: 1px solid rgba(100,160,255,0.25);
+    border-radius: 5px;
+    padding: 4px 10px;
+  }
+
+  .freezing-alert .fa-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #b8d4ff;
+    flex-shrink: 0;
+  }
+
+  /* Two-row chart layout */
+  .profile-charts {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 0;
+    min-height: 0;
+  }
+
+  .chart-row {
+    position: relative;
+    flex: 1;
+  }
+
+  .chart-row-label {
+    position: absolute;
+    left: 0; top: 2px;
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.2);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .chart-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 2px 0;
+    flex-shrink: 0;
+  }
+
+  .profile-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+  /* Top bar controls */
+  .map-controls {
+    position: absolute;
+    top: 16px; right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 20;
+  }
+
+  .ctrl-btn {
+    width: 36px; height: 36px;
+    background: rgba(13,27,42,0.85);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 16px;
+    transition: all 0.2s;
+    backdrop-filter: blur(8px);
+  }
+  .ctrl-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+
+  /* Info panel top */
+  .map-info-bar {
+    position: absolute;
+    top: 16px; left: 16px;
+    display: flex;
+    gap: 10px;
+    z-index: 20;
+  }
+
+  .info-chip {
+    background: rgba(13,27,42,0.85);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 8px 14px;
+    backdrop-filter: blur(8px);
+  }
+
+  .chip-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+  .chip-val { font-size: 14px; font-weight: 500; margin-top: 2px; }
+  .chip-val.accent { color: var(--accent); }
+  .chip-val.warn { color: var(--warn); }
+  .chip-val.success { color: var(--success); }
+
+  /* Sentinel badge */
+  .sentinel-badge {
+    position: absolute;
+    bottom: 130px;
+    right: 16px;
+    background: rgba(13,27,42,0.88);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(8px);
+    z-index: 20;
+  }
+
+  .sentinel-badge span { color: var(--success); }
+
+  /* ── SNOW COVERAGE LEGEND ── */
+  .legend {
+    position: absolute;
+    bottom: 130px;
+    left: 16px;
+    background: rgba(13,27,42,0.88);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 12px;
+    backdrop-filter: blur(8px);
+    z-index: 20;
+    min-width: 140px;
+  }
+
+  .legend-title { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; margin-bottom: 5px; }
+  .legend-swatch { width: 20px; height: 8px; border-radius: 2px; }
+
+  /* ── HEADER HERO ── */
+  .hero {
+    padding: 80px 60px 60px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--deep) 0%, #0a1e30 100%);
+    border-bottom: 1px solid rgba(200,232,245,0.08);
+  }
+
+  .hero-bg-mountain {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 50%;
+    height: 100%;
+    opacity: 0.07;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200'%3E%3Cpolygon points='0,200 100,60 160,120 230,20 320,100 400,40 400,200' fill='white'/%3E%3C/svg%3E") no-repeat bottom right;
+    background-size: contain;
+  }
+
+  .hero-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hero-tag::before {
+    content: '';
+    display: inline-block;
+    width: 24px; height: 1px;
+    background: var(--accent);
+  }
+
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 7vw, 88px);
+    letter-spacing: 4px;
+    line-height: 0.95;
+    color: var(--snow);
+    margin-bottom: 20px;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--accent);
+  }
+
+  .hero p {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 480px;
+    line-height: 1.65;
+    margin-bottom: 32px;
+  }
+
+  .hero-actions { display: flex; gap: 12px; align-items: center; }
+
+  .btn-primary {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 13px 28px;
+    background: var(--accent);
+    color: var(--deep);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .btn-primary:hover { background: #72deff; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(72,212,255,0.25); }
+
+  .btn-ghost {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 13px 28px;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+
+  .hero-stats {
+    position: absolute;
+    right: 60px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .stat-item { text-align: right; }
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px;
+    letter-spacing: 2px;
+    color: var(--snow);
+    line-height: 1;
+  }
+  .stat-num span { color: var(--accent); font-size: 24px; }
+  .stat-desc { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
+
+  /* ── FEATURE SECTION ── */
+  .features {
+    padding: 60px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    border-bottom: 1px solid rgba(200,232,245,0.07);
+  }
+
+  .feature-card {
+    padding: 24px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card:hover { border-color: rgba(72,212,255,0.2); background: rgba(72,212,255,0.03); transform: translateY(-2px); }
+
+  .feat-icon {
+    font-size: 28px;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .feat-num {
+    position: absolute;
+    top: 20px; right: 20px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 60px;
+    color: rgba(255,255,255,0.04);
+    line-height: 1;
+  }
+
+  .feature-card h3 {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--snow);
+  }
+
+  .feature-card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ── DEPARTURE TIME ── */
+  .depart-time-display {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .depart-time-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 2px;
+    color: var(--snow);
+    line-height: 1;
+  }
+  .depart-time-ampm {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .depart-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-top: 6px;
+    text-transform: uppercase;
+  }
+  .depart-hint span { color: var(--warn); }
+
+  /* ── CONDITION COLORS ── */
+  :root {
+    --firm: #a8e6ff;
+    --marginal: #ffd166;
+    --soft: #ff8c69;
+  }
+
+  /* ── UPDATED REPORT CARDS ── */
+  .card-aspect-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .aspect-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.08);
+    color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .slope-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+  }
+
+  /* Condition window bar */
+  .cond-bar-wrap { margin-top: 8px; }
+  .cond-bar-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .cond-bar {
+    height: 6px;
+    border-radius: 3px;
+    display: flex;
+    overflow: hidden;
+    gap: 1px;
+  }
+  .cond-seg {
+    height: 100%;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+  .cond-time-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3px;
+  }
+  .cond-time-tick {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: rgba(255,255,255,0.2);
+  }
+
+  /* Condition pill on card */
+  .cond-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .cond-firm   { background: rgba(168,230,255,0.15); color: var(--firm);     border: 1px solid rgba(168,230,255,0.3); }
+  .cond-marg   { background: rgba(255,209,102,0.15); color: var(--marginal); border: 1px solid rgba(255,209,102,0.3); }
+  .cond-soft   { background: rgba(255,140,105,0.15); color: var(--soft);     border: 1px solid rgba(255,140,105,0.3); }
+  .cond-uk     { background: rgba(255,255,255,0.06); color: var(--muted);    border: 1px solid rgba(255,255,255,0.1); }
+
+  /* Confidence indicator */
+  .conf-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .conf-label { font-family: 'DM Mono', monospace; font-size: 8px; color: rgba(255,255,255,0.2); letter-spacing: 1px; text-transform: uppercase; }
+  .conf-pips { display: flex; gap: 2px; }
+  .conf-pip {
+    width: 10px; height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.12);
+  }
+  .conf-pip.filled { background: rgba(255,255,255,0.45); }
+
+  /* ── CONDITION MAP BLOBS ── */
+  .cond-blob {
+    position: absolute;
+    border-radius: 50%;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    filter: blur(10px);
+    opacity: 0.5;
+  }
+
+  /* ── CONDITION TIMELINE IN PROFILE ── */
+  .cond-timeline-row {
+    flex-shrink: 0;
+    padding: 0 0 2px 0;
+  }
+  .cond-timeline-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.2);
+    margin-bottom: 3px;
+    padding-left: 0;
+  }
+  .cond-timeline-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    gap: 1px;
+  }
+  .ct-seg {
+    height: 100%;
+    position: relative;
+    transition: opacity 0.2s;
+  }
+  .ct-seg:hover { opacity: 0.8; cursor: pointer; }
+  .ct-firm     { background: var(--firm); opacity: 0.75; }
+  .ct-marginal { background: var(--marginal); opacity: 0.8; }
+  .ct-soft     { background: var(--soft); opacity: 0.75; }
+  .ct-nosnow   { background: rgba(255,255,255,0.07); }
+
+  .cond-timeline-ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3px;
+  }
+  .ct-tick {
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    color: rgba(255,255,255,0.2);
+  }
+  .ct-tick.highlight { color: rgba(255,255,255,0.5); }
+
+  .cond-legend-inline {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .cli {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: rgba(255,255,255,0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .cli-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── VIEW TOGGLE ── */
+  #app-view { display: none; }
+  #app-view.visible { display: grid; }
+  #landing-view.hidden { display: none; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .hero-stats { display: none; }
+    .features { grid-template-columns: 1fr; padding: 30px; }
+    .hero { padding: 50px 30px; }
+    nav { padding: 16px 20px; }
+  }
+
+  /* Animations */
+  .fade-in { animation: fadeIn 0.6s ease both; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon"></div>
+    Snow<span>Line</span>
+  </div>
+  <div class="nav-pills">
+    <button class="pill active" onclick="showLanding()">Overview</button>
+    <button class="pill" onclick="showApp()">App Demo</button>
+    <button class="pill">Routes</button>
+  </div>
+  <div class="nav-right">
+    <div class="satellite-badge">
+      <div class="pulse-dot"></div>
+      Sentinel-2 Live
+    </div>
+  </div>
+</nav>
+
+<!-- LANDING VIEW -->
+<div id="landing-view">
+  <div class="hero">
+    <div class="hero-bg-mountain"></div>
+    <div class="hero-tag">Satellite-Powered Snow Intelligence</div>
+    <h1>See Where<br>The <em>Snow</em><br>Actually Is</h1>
+    <p>Real-time satellite snow detection overlaid directly on your topo map. Plan safer, smarter mountain routes without switching between tools.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="showApp()">Open App Demo →</button>
+      <button class="btn-ghost">Learn More</button>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-num">48<span>hr</span></div>
+        <div class="stat-desc">Max image age</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">10<span>m</span></div>
+        <div class="stat-desc">Resolution</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">2<span>tap</span></div>
+        <div class="stat-desc">Route to overlay</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="features">
+    <div class="feature-card fade-in" style="animation-delay:0.1s">
+      <span class="feat-icon">🛰️</span>
+      <span class="feat-num">01</span>
+      <h3>Live Satellite Imagery</h3>
+      <p>Automatically pulls the most recent Sentinel-2 pass for your selected area. Always within 48 hours — no manual searching required.</p>
+    </div>
+    <div class="feature-card fade-in" style="animation-delay:0.2s">
+      <span class="feat-icon">🗺️</span>
+      <span class="feat-num">02</span>
+      <h3>Topo Map Integration</h3>
+      <p>Draw or import your planned route on a full topographic base map. Contour lines, elevation data, and trail markers all in one place.</p>
+    </div>
+    <div class="feature-card fade-in" style="animation-delay:0.3s">
+      <span class="feat-icon">❄️</span>
+      <span class="feat-num">03</span>
+      <h3>Snow Overlay</h3>
+      <p>NDSI-derived snow coverage is projected directly onto your topo view. See exactly which segments of your route cross snow fields.</p>
+    </div>
+  </div>
+</div>
+
+<!-- APP DEMO VIEW -->
+<div id="app-view" class="app-grid">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Search -->
+    <div class="sidebar-section">
+      <div class="section-label">Search Area</div>
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input type="text" placeholder="Peak, pass, or coordinates…" value="Mt. Whitney Corridor">
+      </div>
+    </div>
+
+    <!-- Date -->
+    <div class="sidebar-section">
+      <div class="section-label">Satellite Pass</div>
+      <div class="date-row">
+        <span style="font-size:12px;color:var(--muted)">Image Date</span>
+        <span class="date-val">Mar 21, 2026</span>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" min="1" max="10" value="8" oninput="updateDate(this.value)">
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">−10 days</span>
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">Today</span>
+      </div>
+    </div>
+
+    <!-- Departure Time -->
+    <div class="sidebar-section">
+      <div class="section-label">Departure Time</div>
+      <div class="depart-time-display">
+        <div class="depart-time-big" id="departDisplay">05:00</div>
+        <div class="depart-time-ampm">AM</div>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" min="3" max="14" value="5" step="0.5" oninput="updateDepart(this.value)" style="background: linear-gradient(to right, var(--accent) 22%, rgba(255,255,255,0.1) 22%)">
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">03:00</span>
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">14:00</span>
+      </div>
+      <div class="depart-hint">Guitar Lake at <span id="guitarTime">09:20</span> · Soft by <span id="softTime">10:30</span></div>
+    </div>
+
+    <!-- Snow Condition Layer toggle + info -->
+    <div class="sidebar-section" style="padding-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="section-label" style="margin-bottom:0">Snow Condition</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px">AT ARRIVAL</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <div style="flex:1;background:rgba(168,230,255,0.08);border:1px solid rgba(168,230,255,0.2);border-radius:7px;padding:8px 10px;text-align:center">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--firm);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Firm</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--firm);line-height:1" id="firmKm">4.2</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(168,230,255,0.4)">km</div>
+        </div>
+        <div style="flex:1;background:rgba(255,209,102,0.08);border:1px solid rgba(255,209,102,0.2);border-radius:7px;padding:8px 10px;text-align:center">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--marginal);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Marginal</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--marginal);line-height:1" id="margKm">1.8</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,209,102,0.4)">km</div>
+        </div>
+        <div style="flex:1;background:rgba(255,140,105,0.08);border:1px solid rgba(255,140,105,0.2);border-radius:7px;padding:8px 10px;text-align:center">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--soft);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Soft</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--soft);line-height:1" id="softKm">0.0</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,140,105,0.4)">km</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layers -->
+    <div class="sidebar-section">
+      <div class="section-label">Map Layers</div>
+      <div class="layer-list">
+        <div class="layer-item active" onclick="this.classList.toggle('active')">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#48d4ff"></div>
+            <div>
+              <div class="layer-name">Snow Coverage</div>
+              <div class="layer-sub">Sentinel-2 NDSI</div>
+            </div>
+          </div>
+          <div class="toggle"></div>
+        </div>
+        <div class="layer-item active" onclick="this.classList.toggle('active')">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#ffd166"></div>
+            <div>
+              <div class="layer-name">My Route</div>
+              <div class="layer-sub">14.2 km planned</div>
+            </div>
+          </div>
+          <div class="toggle"></div>
+        </div>
+        <div class="layer-item active" onclick="this.classList.toggle('active')">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#06d6a0"></div>
+            <div>
+              <div class="layer-name">Contour Lines</div>
+              <div class="layer-sub">40m interval</div>
+            </div>
+          </div>
+          <div class="toggle"></div>
+        </div>
+        <div class="layer-item active" onclick="this.classList.toggle('active')">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:linear-gradient(135deg,var(--firm),var(--soft))"></div>
+            <div>
+              <div class="layer-name">Snow Condition</div>
+              <div class="layer-sub">Aspect · Temp · Time</div>
+            </div>
+          </div>
+          <div class="toggle"></div>
+        </div>
+        <div class="layer-item" onclick="this.classList.toggle('active')">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#ef476f"></div>
+            <div>
+              <div class="layer-name">Avalanche Risk</div>
+              <div class="layer-sub">NOAA forecast</div>
+            </div>
+          </div>
+          <div class="toggle"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Route Snow Report -->
+    <div class="sidebar-section" style="border-bottom:none;padding-bottom:8px">
+      <div class="section-label">Route Snow Crossings</div>
+    </div>
+    <div class="report-scroll">
+
+      <!-- Card 1: Guitar Lake — North-facing, firm all day -->
+      <div class="report-card high">
+        <div class="card-top">
+          <div class="card-name">Guitar Lake Snowfield</div>
+          <div class="cond-pill cond-firm" id="card1cond">Firm</div>
+        </div>
+        <div class="card-aspect-row">
+          <div class="aspect-badge">N-NE facing</div>
+          <div class="aspect-badge">32°</div>
+          <div class="slope-badge" style="margin-left:auto;font-size:9px;color:var(--muted)">▲ 3,680m · 1.4km</div>
+        </div>
+        <!-- Condition window bar: 06:00–22:00 scope -->
+        <div class="cond-bar-wrap">
+          <div class="cond-bar-label">
+            <span>Condition window</span>
+            <span id="card1arr" style="color:var(--accent)">Arrive ~09:20</span>
+          </div>
+          <div class="cond-bar">
+            <!-- Firm all day on north face — no sun until late -->
+            <div class="cond-seg" style="background:var(--firm);width:70%;opacity:0.7"></div>
+            <div class="cond-seg" style="background:var(--marginal);width:20%;opacity:0.75"></div>
+            <div class="cond-seg" style="background:var(--soft);width:10%;opacity:0.7"></div>
+          </div>
+          <div class="cond-time-row">
+            <span class="cond-time-tick">06:00</span>
+            <span class="cond-time-tick">10:00</span>
+            <span class="cond-time-tick">14:00</span>
+            <span class="cond-time-tick">18:00</span>
+          </div>
+        </div>
+        <div class="conf-row">
+          <span class="conf-label">Confidence</span>
+          <div class="conf-pips">
+            <div class="conf-pip filled"></div>
+            <div class="conf-pip filled"></div>
+            <div class="conf-pip filled"></div>
+            <div class="conf-pip filled"></div>
+            <div class="conf-pip"></div>
+          </div>
+          <span style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,0.25);margin-left:3px">Overnght low −4°C · refreeze confirmed</span>
+        </div>
+      </div>
+
+      <!-- Card 2: Whitney Portal Gully — SW facing, softens mid-morning -->
+      <div class="report-card med">
+        <div class="card-top">
+          <div class="card-name">Whitney Portal Gully</div>
+          <div class="cond-pill cond-marg" id="card2cond">Marginal</div>
+        </div>
+        <div class="card-aspect-row">
+          <div class="aspect-badge">SW facing</div>
+          <div class="aspect-badge">28°</div>
+          <div class="slope-badge" style="margin-left:auto;font-size:9px;color:var(--muted)">▲ 3,420m · 0.6km</div>
+        </div>
+        <div class="cond-bar-wrap">
+          <div class="cond-bar-label">
+            <span>Condition window</span>
+            <span id="card2arr" style="color:var(--warn)">Arrive ~10:45</span>
+          </div>
+          <div class="cond-bar">
+            <div class="cond-seg" style="background:var(--firm);width:40%;opacity:0.7"></div>
+            <div class="cond-seg" style="background:var(--marginal);width:30%;opacity:0.8"></div>
+            <div class="cond-seg" style="background:var(--soft);width:30%;opacity:0.75"></div>
+          </div>
+          <div class="cond-time-row">
+            <span class="cond-time-tick">06:00</span>
+            <span class="cond-time-tick">10:00</span>
+            <span class="cond-time-tick">14:00</span>
+            <span class="cond-time-tick">18:00</span>
+          </div>
+        </div>
+        <div class="conf-row">
+          <span class="conf-label">Confidence</span>
+          <div class="conf-pips">
+            <div class="conf-pip filled"></div>
+            <div class="conf-pip filled"></div>
+            <div class="conf-pip filled"></div>
+            <div class="conf-pip"></div>
+            <div class="conf-pip"></div>
+          </div>
+          <span style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,0.25);margin-left:3px">SW sun hits ~09:50 · borderline timing</span>
+        </div>
+      </div>
+
+      <!-- Card 3: Trail Crest — E facing, safe early -->
+      <div class="report-card low">
+        <div class="card-top">
+          <div class="card-name">Trail Crest Approach</div>
+          <div class="cond-pill cond-firm" id="card3cond">Firm</div>
+        </div>
+        <div class="card-aspect-row">
+          <div class="aspect-badge">E facing</div>
+          <div class="aspect-badge">18°</div>
+          <div class="slope-badge" style="margin-left:auto;font-size:9px;color:var(--muted)">▲ 3,180m · 0.3km</div>
+        </div>
+        <div class="cond-bar-wrap">
+          <div class="cond-bar-label">
+            <span>Condition window</span>
+            <span id="card3arr" style="color:var(--success)">Arrive ~07:30</span>
+          </div>
+          <div class="cond-bar">
+            <div class="cond-seg" style="background:var(--firm);width:35%;opacity:0.7"></div>
+            <div class="cond-seg" style="background:var(--marginal);width:25%;opacity:0.75"></div>
+            <div class="cond-seg" style="background:var(--soft);width:40%;opacity:0.7"></div>
+          </div>
+          <div class="cond-time-row">
+            <span class="cond-time-tick">06:00</span>
+            <span class="cond-time-tick">10:00</span>
+            <span class="cond-time-tick">14:00</span>
+            <span class="cond-time-tick">18:00</span>
+          </div>
+        </div>
+        <div class="conf-row">
+          <span class="conf-label">Confidence</span>
+          <div class="conf-pips">
+            <div class="conf-pip filled"></div>
+            <div class="conf-pip filled"></div>
+            <div class="conf-pip filled"></div>
+            <div class="conf-pip filled"></div>
+            <div class="conf-pip filled"></div>
+          </div>
+          <span style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,0.25);margin-left:3px">Low angle · early arrival · safe</span>
+        </div>
+      </div>
+
+      <!-- Card 4: Lone Pine — trace only -->
+      <div class="report-card low">
+        <div class="card-top">
+          <div class="card-name">Lone Pine Lake Basin</div>
+          <div class="cond-pill cond-uk">Trace</div>
+        </div>
+        <div class="card-aspect-row">
+          <div class="aspect-badge">Varied</div>
+          <div class="aspect-badge">&lt;10°</div>
+          <div class="slope-badge" style="margin-left:auto;font-size:9px;color:var(--muted)">▲ 2,890m · trace</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5">
+          Patchy remnant snow only — no meaningful condition assessment required.
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MAP -->
+  <div class="map-wrap">
+    <div class="topo-map"></div>
+    <div class="topo-lines"></div>
+
+    <!-- Snow overlay -->
+    <div class="snow-overlay" id="snowOverlay">
+      <div class="snow-blob"></div>
+      <div class="snow-blob"></div>
+      <div class="snow-blob"></div>
+      <div class="snow-blob"></div>
+      <div class="snow-blob"></div>
+      <div class="snow-blob"></div>
+    </div>
+
+    <!-- Condition overlay — colour-coded blobs by firm/marginal/soft -->
+    <!-- Guitar Lake area — North face — FIRM (cyan) -->
+    <div class="cond-blob" id="condBlob1" style="width:160px;height:110px;top:10%;left:24%;background:radial-gradient(ellipse,rgba(168,230,255,0.55),transparent 70%)"></div>
+    <div class="cond-blob" id="condBlob2" style="width:110px;height:80px;top:16%;left:36%;background:radial-gradient(ellipse,rgba(168,230,255,0.45),transparent 70%)"></div>
+    <!-- Summit shoulder — FIRM -->
+    <div class="cond-blob" id="condBlob3" style="width:180px;height:120px;top:5%;left:54%;background:radial-gradient(ellipse,rgba(168,230,255,0.5),transparent 70%)"></div>
+    <!-- Whitney Portal Gully — SW face — MARGINAL (amber) -->
+    <div class="cond-blob" id="condBlob4" style="width:100px;height:70px;top:24%;left:70%;background:radial-gradient(ellipse,rgba(255,209,102,0.5),transparent 70%)"></div>
+    <!-- Trail Crest — E face — FIRM early but will soften -->
+    <div class="cond-blob" id="condBlob5" style="width:130px;height:90px;top:33%;left:13%;background:radial-gradient(ellipse,rgba(168,230,255,0.4),transparent 70%)"></div>
+    <!-- Lower south pocket — SOFT (orange-red) -->
+    <div class="cond-blob" id="condBlob6" style="width:90px;height:65px;top:28%;left:42%;background:radial-gradient(ellipse,rgba(255,140,105,0.45),transparent 70%)"></div>
+
+    <!-- Route SVG -->
+    <svg class="route-svg" viewBox="0 0 1000 700">
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <!-- Snow intersection highlight -->
+        <linearGradient id="snowRoute" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#48d4ff;stop-opacity:1"/>
+          <stop offset="100%" style="stop-color:#c8e8f5;stop-opacity:0.8"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Base route -->
+      <path d="M 80 520 Q 160 460 220 400 Q 280 340 310 290 Q 340 240 380 200 Q 430 155 480 130 Q 530 108 580 95 Q 640 85 700 90 Q 750 95 810 110"
+            fill="none" stroke="rgba(255,209,102,0.35)" stroke-width="3" stroke-dasharray="6,4"/>
+
+      <!-- Active route segments -->
+      <path d="M 80 520 Q 160 460 220 400 Q 280 340 310 290"
+            fill="none" stroke="#ffd166" stroke-width="2.5" filter="url(#glow)"/>
+
+      <!-- Snow intersection segment (highlighted) -->
+      <path d="M 310 290 Q 340 240 380 200 Q 430 155 480 130"
+            fill="none" stroke="url(#snowRoute)" stroke-width="3.5" filter="url(#glow)" opacity="0.9"/>
+
+      <path d="M 480 130 Q 530 108 580 95 Q 640 85 700 90 Q 750 95 810 110"
+            fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="4,3"/>
+    </svg>
+
+    <!-- Waypoints -->
+    <div class="waypoint" style="left:8%;top:74%">
+      <div class="wp-dot" style="background:#06d6a0;width:14px;height:14px;"></div>
+      <div class="wp-label" style="color:#06d6a0">START · 2,550m</div>
+    </div>
+
+    <div class="waypoint" style="left:30%;top:44%">
+      <div class="wp-dot" style="background:#ffd166"></div>
+      <div class="wp-label">Trail Crest · 3,420m</div>
+    </div>
+
+    <div class="waypoint" style="left:48%;top:22%">
+      <div class="wp-dot" style="background:#ef476f"></div>
+      <div class="wp-label" style="color:#ef476f">Guitar Lake · 3,680m</div>
+    </div>
+
+    <div class="waypoint" style="left:80%;top:18%">
+      <div class="wp-dot" style="background:#48d4ff;width:16px;height:16px;"></div>
+      <div class="wp-label" style="color:#48d4ff">SUMMIT · 4,421m</div>
+    </div>
+
+    <!-- Snow crossing warning markers -->
+    <div class="snow-warn" style="left:38%;top:30%">
+      <div class="snow-warn-ring"></div>
+      <div class="snow-warn-inner">❄</div>
+    </div>
+
+    <div class="snow-warn" style="left:52%;top:20%" style="animation-delay:1s">
+      <div class="snow-warn-ring" style="animation-delay:1s"></div>
+      <div class="snow-warn-inner">❄</div>
+    </div>
+
+    <!-- Map top-left chips -->
+    <div class="map-info-bar">
+      <div class="info-chip">
+        <div class="chip-label">Snow Cover</div>
+        <div class="chip-val accent">62% of route</div>
+      </div>
+      <div class="info-chip">
+        <div class="chip-label">Highest Snow</div>
+        <div class="chip-val warn">3,680m</div>
+      </div>
+      <div class="info-chip">
+        <div class="chip-label">Image Age</div>
+        <div class="chip-val success">36 hrs</div>
+      </div>
+    </div>
+
+    <!-- Map right controls -->
+    <div class="map-controls">
+      <div class="ctrl-btn" title="Zoom in">+</div>
+      <div class="ctrl-btn" title="Zoom out">−</div>
+      <div class="ctrl-btn" title="My location">◎</div>
+      <div class="ctrl-btn" title="Layers" style="margin-top:8px">≡</div>
+      <div class="ctrl-btn" title="Fullscreen">⤢</div>
+    </div>
+
+    <!-- Sentinel source badge -->
+    <div class="sentinel-badge" style="bottom:210px">
+      Source: <span>&nbsp;Sentinel-2</span>&nbsp;· Band 3/11 NDSI
+    </div>
+
+    <!-- Legend -->
+    <div class="legend" style="bottom:210px">
+      <div class="legend-title">Snow Detection</div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:rgba(200,235,255,0.75)"></div>
+        <span style="font-size:11px">Confirmed snow</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:rgba(72,212,255,0.6)"></div>
+        <span style="font-size:11px">Route crossing</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:rgba(255,209,102,0.7)"></div>
+        <span style="font-size:11px">Your route</span>
+      </div>
+      <div style="height:6px;border-top:1px solid rgba(255,255,255,0.07);margin:6px 0 4px"></div>
+      <div class="legend-title" style="margin-bottom:6px">Condition at Arrival</div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:rgba(168,230,255,0.7)"></div>
+        <span style="font-size:11px">Firm</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:rgba(255,209,102,0.75)"></div>
+        <span style="font-size:11px">Marginal</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:rgba(255,140,105,0.7)"></div>
+        <span style="font-size:11px">Soft</span>
+      </div>
+    </div>
+
+    <!-- Route Profile Panel: Elevation + Temperature -->
+    <div class="elev-panel">
+
+      <!-- Header row -->
+      <div class="profile-header">
+        <div class="elev-label">Route Profile — Elevation &amp; Temperature</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div class="freezing-alert">
+            <div class="fa-dot"></div>
+            Freezing level crosses route at 3,200m · km 6.1
+          </div>
+          <div class="profile-legend">
+            <div class="prof-leg-item">
+              <div class="prof-leg-line" style="background:#48d4ff"></div>
+              Elevation
+            </div>
+            <div class="prof-leg-item">
+              <div class="prof-leg-line" style="background:#ff9f4a"></div>
+              Temperature
+            </div>
+            <div class="prof-leg-item">
+              <div class="prof-leg-dash" style="border-color:#b8d4ff"></div>
+              0°C
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="profile-charts">
+
+        <!-- ELEVATION TRACK -->
+        <div class="chart-row" style="flex:1.1">
+          <div class="chart-row-label">Elevation</div>
+          <svg class="profile-svg" viewBox="0 0 1000 52" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="elevFill2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(72,212,255,0.22)"/>
+                <stop offset="100%" stop-color="rgba(72,212,255,0.01)"/>
+              </linearGradient>
+              <!-- Below-freezing zone fill (above 3200m = route position ~54%) -->
+              <linearGradient id="subZeroFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(184,212,255,0.18)"/>
+                <stop offset="100%" stop-color="rgba(184,212,255,0.02)"/>
+              </linearGradient>
+              <clipPath id="subZeroClip">
+                <!-- clip to region above 3200m: route x ~540 onward, then back -->
+                <polygon points="540,0 630,0 680,0 720,0 760,4 800,8 850,14 900,20 940,26 1000,34 1000,0"/>
+              </clipPath>
+            </defs>
+
+            <!-- Snow coverage zone background -->
+            <rect x="340" y="0" width="290" height="52" fill="rgba(72,212,255,0.05)" rx="0"/>
+
+            <!-- Sub-zero (above freezing level) zone -->
+            <path d="M540 26 L580 20 L630 14 L680 10 L730 6 L780 4 L820 2 L860 4 L900 8 L940 16 L1000 28 L1000 0 L540 0 Z"
+                  fill="url(#subZeroFill)" opacity="0.9"/>
+
+            <!-- Elevation fill -->
+            <path d="M0 48 L60 45 L120 41 L180 36 L240 30 L310 22 L380 14 L440 9 L510 5 L540 4 L580 3 L630 2 L680 4 L730 6 L780 9 L820 12 L860 16 L900 22 L950 30 L1000 36 L1000 52 L0 52 Z"
+                  fill="url(#elevFill2)"/>
+
+            <!-- Elevation line -->
+            <path d="M0 48 L60 45 L120 41 L180 36 L240 30 L310 22 L380 14 L440 9 L510 5 L540 4 L580 3 L630 2 L680 4 L730 6 L780 9 L820 12 L860 16 L900 22 L950 30 L1000 36"
+                  fill="none" stroke="#48d4ff" stroke-width="1.5" opacity="0.85"/>
+
+            <!-- Summit highlight on elev line -->
+            <path d="M510 5 L540 4 L580 3 L630 2"
+                  fill="none" stroke="rgba(200,235,255,0.7)" stroke-width="2.5"/>
+
+            <!-- Freezing level crossings on elev chart — vertical markers -->
+            <!-- Route crosses freezing level at ~km 6.1 (x≈540) ascending -->
+            <line x1="540" y1="0" x2="540" y2="52" stroke="rgba(184,212,255,0.5)" stroke-width="1" stroke-dasharray="3,3"/>
+            <!-- and descends back through it at ~km 10.8 (x≈870) -->
+            <line x1="870" y1="0" x2="870" y2="52" stroke="rgba(184,212,255,0.35)" stroke-width="1" stroke-dasharray="3,3"/>
+
+            <!-- Elevation axis labels -->
+            <text x="4" y="47" fill="rgba(255,255,255,0.28)" font-size="7" font-family="monospace">2550m</text>
+            <text x="595" y="11" fill="rgba(200,235,255,0.7)" font-size="7" font-family="monospace">4421m</text>
+            <text x="544" y="22" fill="rgba(184,212,255,0.65)" font-size="7" font-family="monospace">3200m ↑0°</text>
+
+            <!-- km axis marks -->
+            <line x1="0"    y1="50" x2="0"    y2="52" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            <line x1="333"  y1="50" x2="333"  y2="52" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            <line x1="666"  y1="50" x2="666"  y2="52" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            <line x1="1000" y1="50" x2="1000" y2="52" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+          </svg>
+        </div>
+
+        <div class="chart-divider"></div>
+
+        <!-- TEMPERATURE TRACK -->
+        <div class="chart-row" style="flex:1">
+          <div class="chart-row-label">Temperature</div>
+          <svg class="profile-svg" viewBox="0 0 1000 44" preserveAspectRatio="none">
+            <defs>
+              <!-- Warm gradient (above 0°C) -->
+              <linearGradient id="tempWarm" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(255,159,74,0.35)"/>
+                <stop offset="100%" stop-color="rgba(255,159,74,0.04)"/>
+              </linearGradient>
+              <!-- Cold gradient (below 0°C) -->
+              <linearGradient id="tempCold" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(184,212,255,0.04)"/>
+                <stop offset="100%" stop-color="rgba(184,212,255,0.28)"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Zero line — the key reference -->
+            <!-- 0°C sits at y=22 in this chart (midpoint, slight below centre) -->
+            <line x1="0" y1="22" x2="1000" y2="22"
+                  stroke="rgba(184,212,255,0.55)" stroke-width="1.5" stroke-dasharray="5,4"/>
+            <text x="4" y="20" fill="rgba(184,212,255,0.7)" font-size="8" font-family="monospace" font-weight="500">0°C</text>
+
+            <!-- Warm zone fill (below zero line = above-zero temp, trailhead to freeze crossing) -->
+            <!-- Temp curve: starts +14°C at trailhead, cools as gain altitude -->
+            <!-- Trailhead 2550m: +14°C (y=4), Trail Crest 3420m: +4°C (y=18), freeze at 3200m (x=540,y=22), summit 4421m: -8°C (y=34), descent mirrors -->
+            <path d="M0 4 L80 6 L160 9 L250 13 L340 17 L430 20 L540 22 L540 22 L540 22 L0 22 Z"
+                  fill="url(#tempWarm)" opacity="0.9"/>
+
+            <!-- Cold zone fill -->
+            <path d="M540 22 L630 26 L700 29 L760 31 L820 33 L870 34 L900 33 L940 30 L980 27 L1000 25 L1000 22 Z"
+                  fill="url(#tempCold)" opacity="0.9"/>
+
+            <!-- Temperature curve — warm side (orange) -->
+            <path d="M0 4 L80 6 L160 9 L250 13 L340 17 L430 20 L540 22"
+                  fill="none" stroke="#ff9f4a" stroke-width="2" stroke-linecap="round"/>
+
+            <!-- Temperature curve — cold side (blue) -->
+            <path d="M540 22 L630 26 L700 29 L760 31 L820 33 L870 34 L900 33 L940 30 L980 27 L1000 25"
+                  fill="none" stroke="#9ec8ff" stroke-width="2" stroke-linecap="round"/>
+
+            <!-- Freezing crossover dot — ascent -->
+            <circle cx="540" cy="22" r="4" fill="#b8d4ff" stroke="white" stroke-width="1.5"/>
+
+            <!-- Freezing crossover dot — descent -->
+            <circle cx="870" cy="22" r="4" fill="#b8d4ff" stroke="white" stroke-width="1.5"/>
+
+            <!-- Temperature value labels along curve -->
+            <text x="8"   y="13" fill="rgba(255,159,74,0.85)" font-size="8" font-family="monospace">+14°</text>
+            <text x="330" y="15" fill="rgba(255,159,74,0.7)"  font-size="8" font-family="monospace">+4°</text>
+            <text x="544" y="19" fill="rgba(184,212,255,0.9)" font-size="8" font-family="monospace" font-weight="500">0°</text>
+            <text x="880" y="32" fill="rgba(148,200,255,0.85)"font-size="8" font-family="monospace">−8°</text>
+            <text x="988" y="23" fill="rgba(148,200,255,0.7)" font-size="8" font-family="monospace" text-anchor="end">+2°</text>
+
+            <!-- km distance labels at bottom -->
+            <text x="2"    y="43" fill="rgba(255,255,255,0.2)" font-size="7" font-family="monospace">0km</text>
+            <text x="323"  y="43" fill="rgba(255,255,255,0.2)" font-size="7" font-family="monospace">4.7km</text>
+            <text x="526"  y="43" fill="rgba(184,212,255,0.45)" font-size="7" font-family="monospace">6.1km</text>
+            <text x="856"  y="43" fill="rgba(184,212,255,0.35)" font-size="7" font-family="monospace">12.4km</text>
+            <text x="950"  y="43" fill="rgba(255,255,255,0.2)" font-size="7" font-family="monospace">14.2km</text>
+          </svg>
+        </div>
+
+      </div>
+
+      <!-- CONDITION TIMELINE STRIP -->
+      <div class="cond-timeline-row" style="margin-top:6px">
+        <div class="cond-timeline-label">Snow condition along route · at planned arrival time</div>
+        <div class="cond-timeline-bar" id="condTimeline">
+          <!-- No snow -->
+          <div class="ct-seg ct-nosnow" style="flex:3.4" title="No snow · 0–3.4km"></div>
+          <!-- Trail Crest — E face, firm at 05:00 -->
+          <div class="ct-seg ct-firm" style="flex:0.3" title="Trail Crest · Firm"></div>
+          <!-- Clear gap -->
+          <div class="ct-seg ct-nosnow" style="flex:1.5"></div>
+          <!-- Guitar Lake snowfield — N face, firm -->
+          <div class="ct-seg ct-firm" style="flex:1.4" title="Guitar Lake · Firm"></div>
+          <!-- Marginal pocket SW -->
+          <div class="ct-seg ct-marginal" style="flex:0.5" title="Portal Gully · Marginal"></div>
+          <!-- Summit firm -->
+          <div class="ct-seg ct-firm" style="flex:0.8" title="Summit approach · Firm"></div>
+          <!-- Descent mirror -->
+          <div class="ct-seg ct-firm" style="flex:0.8"></div>
+          <div class="ct-seg ct-marginal" style="flex:0.5"></div>
+          <div class="ct-seg ct-firm" style="flex:1.4"></div>
+          <div class="ct-seg ct-nosnow" style="flex:1.5"></div>
+          <div class="ct-seg ct-firm" style="flex:0.3"></div>
+          <div class="ct-seg ct-nosnow" style="flex:2.4"></div>
+        </div>
+        <div class="cond-timeline-ticks">
+          <span class="ct-tick">0km</span>
+          <span class="ct-tick">3km</span>
+          <span class="ct-tick highlight">6.1km ❄</span>
+          <span class="ct-tick">9km</span>
+          <span class="ct-tick highlight">12.4km ❄</span>
+          <span class="ct-tick">14.2km</span>
+        </div>
+        <div class="cond-legend-inline">
+          <div class="cli"><div class="cli-dot" style="background:var(--firm)"></div>Firm</div>
+          <div class="cli"><div class="cli-dot" style="background:var(--marginal)"></div>Marginal</div>
+          <div class="cli"><div class="cli-dot" style="background:var(--soft)"></div>Soft</div>
+          <div class="cli"><div class="cli-dot" style="background:rgba(255,255,255,0.15)"></div>No snow</div>
+          <div style="margin-left:auto;font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,0.2)">DRAG DEPARTURE SLIDER TO UPDATE</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function showApp() {
+    document.getElementById('landing-view').classList.add('hidden');
+    document.getElementById('app-view').classList.add('visible');
+    document.querySelectorAll('.pill').forEach((p, i) => p.classList.toggle('active', i === 1));
+  }
+
+  function showLanding() {
+    document.getElementById('landing-view').classList.remove('hidden');
+    document.getElementById('app-view').classList.remove('visible');
+    document.querySelectorAll('.pill').forEach((p, i) => p.classList.toggle('active', i === 0));
+  }
+
+  const dates = ['Mar 13','Mar 15','Mar 17','Mar 18','Mar 19','Mar 20','Mar 21','Mar 21','Mar 22','Mar 23'];
+  function updateDate(v) {
+    document.querySelector('.date-val').textContent = dates[v-1] + ', 2026';
+  }
+
+  // Departure time logic
+  // Each crossing has a sun-hit time (hour) and refreeze state
+  // Guitar Lake NE: sun hits 13:00, firm until ~14:00, refreeze confirmed
+  // Whitney Portal Gully SW: sun hits 09:50, marginal 09:30–11:00, soft after
+  // Trail Crest E: sun hits 07:00, firm until ~08:30, soft after 10:00
+
+  // Walking pace: ~2.5km/hr on snow, so:
+  // Trail Crest at 3.7km from start → +1.5hr from depart
+  // Guitar Lake at 7.5km → +3hr from depart (after Trail Crest)
+  // Whitney Gully at 8.5km → +3.5hr from depart
+
+  function padT(h) {
+    const hr = Math.floor(h);
+    const min = Math.round((h - hr) * 60);
+    return `${String(hr).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+  }
+
+  function getCondition(arrivalHour, sunHitHour, overnight) {
+    // overnight: 'confirmed' | 'marginal' | 'none'
+    if (overnight === 'none') return 'soft'; // never refroze
+    if (arrivalHour < sunHitHour - 1.5) return 'firm';
+    if (arrivalHour < sunHitHour + 0.5) return overnight === 'confirmed' ? 'marginal' : 'soft';
+    return 'soft';
+  }
+
+  const condLabels = { firm: 'Firm', marginal: 'Marginal', soft: 'Soft' };
+  const condPillClass = { firm: 'cond-firm', marginal: 'cond-marg', soft: 'cond-soft' };
+  const condArrColor = { firm: 'var(--success)', marginal: 'var(--warn)', soft: 'var(--soft)' };
+
+  function updateDepart(v) {
+    const depart = parseFloat(v);
+    const hr = Math.floor(depart);
+    const min = Math.round((depart - hr) * 60);
+    const ampm = depart < 12 ? 'AM' : 'PM';
+    const disp = `${String(hr).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+    document.getElementById('departDisplay').textContent = disp;
+    document.querySelector('.depart-time-ampm').textContent = ampm;
+
+    // Arrival estimates
+    const crestArr  = depart + 1.5;
+    const guitarArr = depart + 3.0;
+    const gullyArr  = depart + 3.5;
+
+    document.getElementById('card3arr').textContent = `Arrive ~${padT(crestArr)}`;
+    document.getElementById('card1arr').textContent = `Arrive ~${padT(guitarArr)}`;
+    document.getElementById('card2arr').textContent = `Arrive ~${padT(gullyArr)}`;
+
+    // Guitar Lake: NE face, sun ~13:00, overnight confirmed
+    const c1 = getCondition(guitarArr, 13, 'confirmed');
+    // Whitney Gully: SW face, sun ~09:50, overnight confirmed
+    const c2 = getCondition(gullyArr, 9.83, 'confirmed');
+    // Trail Crest: E face, sun ~07:00, overnight confirmed
+    const c3 = getCondition(crestArr, 7, 'confirmed');
+
+    // Update card pills
+    ['card1cond','card2cond','card3cond'].forEach((id, i) => {
+      const cond = [c1, c2, c3][i];
+      const el = document.getElementById(id);
+      el.textContent = condLabels[cond];
+      el.className = `cond-pill ${condPillClass[cond]}`;
+    });
+
+    // Arrival time text colours
+    document.getElementById('card1arr').style.color = condArrColor[c1];
+    document.getElementById('card2arr').style.color = condArrColor[c2];
+    document.getElementById('card3arr').style.color = condArrColor[c3];
+
+    // Condition summary numbers
+    const firmKm = (c1==='firm'?1.4:0) + (c2==='firm'?0.6:0) + (c3==='firm'?0.3:0);
+    const margKm = (c1==='marginal'?1.4:0) + (c2==='marginal'?0.6:0) + (c3==='marginal'?0.3:0);
+    const softKm = (c1==='soft'?1.4:0) + (c2==='soft'?0.6:0) + (c3==='soft'?0.3:0);
+    document.getElementById('firmKm').textContent = firmKm.toFixed(1);
+    document.getElementById('margKm').textContent = margKm.toFixed(1);
+    document.getElementById('softKm').textContent = softKm.toFixed(1);
+
+    // Guitar Lake hint
+    document.getElementById('guitarTime').textContent = padT(guitarArr);
+    const softHour = 14.0; // NE face softens ~14:00
+    document.getElementById('softTime').textContent = c1 === 'firm' ? padT(softHour) : (c1 === 'marginal' ? 'borderline' : 'already soft');
+
+    // Update condition blob colours
+    const blobColors = {
+      firm:     'radial-gradient(ellipse,rgba(168,230,255,0.55),transparent 70%)',
+      marginal: 'radial-gradient(ellipse,rgba(255,209,102,0.55),transparent 70%)',
+      soft:     'radial-gradient(ellipse,rgba(255,140,105,0.55),transparent 70%)'
+    };
+    document.getElementById('condBlob1').style.background = blobColors[c1];
+    document.getElementById('condBlob2').style.background = blobColors[c1];
+    document.getElementById('condBlob3').style.background = blobColors[c1]; // summit same face
+    document.getElementById('condBlob4').style.background = blobColors[c2];
+    document.getElementById('condBlob5').style.background = blobColors[c3];
+
+    // Update condition timeline strip
+    const segClass = { firm:'ct-firm', marginal:'ct-marginal', soft:'ct-soft' };
+    const segs = document.querySelectorAll('#condTimeline .ct-seg:not(.ct-nosnow)');
+    // Segments in order: trail crest (x2 ascent+descent), guitar x2, gully x2, summit x2
+    const condMap = [c3, c1, c2, c1, c1, c2, c1, c3]; // simplified ascent+descent
+    segs.forEach((seg, i) => {
+      seg.className = `ct-seg ${segClass[condMap[i] || 'firm']}`;
+    });
+
+    // Slider gradient
+    const pct = ((depart - 3) / (14 - 3)) * 100;
+    document.querySelector('input[type=range]:last-of-type, .sidebar input[type=range]');
+    const sliders = document.querySelectorAll('.sidebar-section input[type=range]');
+    if (sliders[1]) sliders[1].style.background = `linear-gradient(to right, var(--accent) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
+  }
+
+  // Init
+  updateDepart(5);
+</script>
+
+</body>
+</html>
