@@ -1,2 +1,2 @@
 # SnowLine
-An app for mountain athletes identifying areas of snow
+An app for mountain athletes that identifies areas of snow and estimates its quality during time of travel
