@@ -1,1 +1,27 @@
+# Mac system files
 .DS_Store
+.DS_Store?
+._*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.env
+
+# Jupyter/Colab
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Earth Engine credentials
+credentials
+private-key.json
+
+# VS Code
+.vscode/
+
+# Virtual environments
+venv/
+env/
+.venv/
