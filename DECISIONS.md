@@ -73,3 +73,16 @@ while still removing open water false positives.
 JRC dataset: JRC/GSW1_4/GlobalSurfaceWater
 Key band: 'seasonality' — number of months per year water 
 is present. Threshold >=10 for permanent water bodies.
+
+## Snow mask validation
+SCL snow classification (value 11) is not reliable as ground 
+truth in alpine terrain. ESA's classifier is optimised for 
+flat terrain and degrades in complex mountain topography.
+
+Validation approach for MVP:
+- Visual inspection against true colour imagery
+- Local terrain knowledge as primary ground truth
+- Known permanent snow bodies (glaciers) as reference
+
+Future: field validation campaign or comparison against 
+high-resolution aerial imagery for specific test areas.
